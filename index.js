@@ -26,52 +26,179 @@ if (!TOKEN || !CLIENT_ID) {
 
 // ============================ KEEP-ALIVE ============================
 const app = express();
-app.get('/', (_req, res) => res.send('Bot is ALIVE! /dispo con autocomplete ✅'));
+app.get('/', (_req, res) => res.send('Bot is ALIVE! /dispo con normativa ✅'));
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🌐 Keep-Alive web en puerto ${PORT}`);
 });
 
-// ====================== ZONAS / CONFIG EDITABLES ====================
-const ZONAS_DISPO = {
-  robo_fleca: {
-    title: 'Robo a Fleca',
-    police: '2 policías online recomendados',
-    weapon: 'Armas cortas / no letales (RP)',
-    participants: { delincuentes: '3–6', policias: '2+' },
-    environment: 'Interior pequeño; tránsito peatonal alto',
-    notes: 'Ventanas de escape cortas.'
+// =============== ACTOS DELICTUALES (según normativa) ===============
+// NOTA: Solo mostramos líneas de OD como pediste (mínimo/máximo OD, etc.)
+// Fuente: Loud RP - Actos delictuales (GitBook)
+const ACTOS = {
+  // --------- ACTOS PARA TODOS (usamos solo datos OD) ----------
+  "asalto_civiles": {
+    title: "Asalto a Civiles",
+    minOD: null,
+    maxOD: "12 Participantes",
+    policia: "3 LSPD CONECTADOS (+1)",
+    vehiculos: "UN vehículo para CIVILES / TRES para OD",
+    armamento: "Todo tipo (restringido por lugar).",
+    refuerzo: "NO permitido."
   },
-  banco_central: {
-    title: 'Robo a Banco Central',
-    police: '4+ policías y negociador',
-    weapon: 'Armas largas / táctico (RP)',
-    participants: { delincuentes: '6–12', policias: '4–8' },
-    environment: 'Seguridad reforzada y cámaras',
-    notes: 'Alto riesgo; coordinar roles por voz.'
+  "venta_droga": {
+    title: "Venta de Droga",
+    minOD: null,
+    maxOD: "1 Participantes",
+    policia: "2 LSPD DISPONIBLES (+1)",
+    vehiculos: "UN vehículo para CIVILES / UN vehículo para OD",
+    armamento: "Bajo calibre.",
+    refuerzo: "—"
   },
-  joyeria: {
-    title: 'Robo a Joyería',
-    police: '2–3 policías',
-    weapon: 'Armas cortas (RP)',
-    participants: { delincuentes: '3–5', policias: '2–3' },
-    environment: 'Local con escaparates y salida limitada',
-    notes: 'Táctica rápida.'
+  "secuestro_civiles": {
+    title: "Secuestro a Civiles",
+    minOD: null,
+    maxOD: "12 Participantes",
+    policia: "5 LSPD CONECTADOS (+2)",
+    vehiculos: "UN vehículo para CIVILES / TRES vehículos para OD",
+    armamento: "Todo tipo (restringido por lugar).",
+    refuerzo: "NO permitido."
   },
-  zona_droga: {
-    title: 'Zona de Recolección de Droga',
-    police: 'Patrullas aleatorias; verificar dispo',
-    weapon: 'No letales o cortas (RP)',
-    participants: { delincuentes: '2–4', policias: '1–3' },
-    environment: 'Calles oscuras con patrullaje frecuente',
-    notes: 'Posibles emboscadas; tener refuerzos.'
+  "estafas": {
+    title: "Estafas",
+    minOD: null,
+    maxOD: "Sin límite (respetando +2 de LSPD)",
+    policia: "5 LSPD CONECTADOS (+2)",
+    vehiculos: "UN vehículo para CIVILES / TRES vehículos para OD",
+    armamento: "Todo tipo (restringido por lugar).",
+    refuerzo: "NO permitido."
   },
-  asaltar_civiles: {
-    title: 'Asaltar Civiles (RP)',
-    police: '1–2 policías en ronda mínima',
-    weapon: 'No letales / amenazas (RP)',
-    participants: { delincuentes: '2–3', policias: '1–2' },
-    environment: 'Vías públicas y parques',
-    notes: 'Usar reglas anti-griefing.'
+  "cosecha_proc_venta_droga_armas": {
+    title: "Cosecha/Procesado/Venta de Droga/Armas",
+    minOD: null,
+    maxOD: "16 Participantes",
+    policia: "5 LSPD CONECTADOS (+1)",
+    vehiculos: "UN vehículo para CIVILES / CUATRO vehículos para OD",
+    armamento: "Todo tipo.",
+    refuerzo: "NO permitido."
+  },
+  "robo_badulaque": {
+    title: "Robo a Badulaque / Liquor Store",
+    minOD: null,
+    maxOD: "4 Participantes",
+    policia: "7 LSPD CONECTADOS (+1)",
+    vehiculos: "UN vehículo para CIVILES / UN vehículo para OD",
+    armamento: "Todo tipo (restringido por lugar).",
+    refuerzo: "NO permitido."
+  },
+  "robo_banco_fleeca": {
+    title: "Robo a Banco Fleeca",
+    minOD: null,
+    maxOD: "8 Participantes",
+    policia: "5 LSPD DISPONIBLES ó 10 LSPD CONECTADOS (+1)",
+    vehiculos: "UN vehículo para CIVILES / DOS vehículos para OD",
+    armamento: "Todo tipo (restringido por lugar).",
+    refuerzo: "NO permitido."
+  },
+
+  // --------- EXCLUSIVOS OD ----------
+  "blackmarket_tablet": {
+    title: "Blackmarket Tablet (EXCLUSIVO OD)",
+    minOD: "1 Participantes",
+    maxOD: "4 Participantes",
+    policia: "5 LSPD CONECTADOS (+1)",
+    vehiculos: "UN vehículo.",
+    armamento: "Dependiendo la zona, NO será necesario en persecución.",
+    refuerzo: "NO permitido."
+  },
+  "graffiti": {
+    title: "Uso de Graffiti (EXCLUSIVO OD)",
+    minOD: null,
+    maxOD: "Toda la OD DISPONIBLE (respetando +1 LSPD)",
+    policia: "5 LSPD CONECTADOS (+1)",
+    vehiculos: "—",
+    armamento: "Arma blanca (melee).",
+    refuerzo: "—"
+  },
+  "asalto_lspd": {
+    title: "Asalto a LSPD (EXCLUSIVO OD)",
+    minOD: "6 Participantes",
+    maxOD: "16 Participantes",
+    policia: "12 LSPD CONECTADOS (+2) ó 8 DISPONIBLES (+2)",
+    vehiculos: "CUATRO vehículos.",
+    armamento: "Todo tipo (restringido por lugar).",
+    refuerzo: "Permitido solo para asaltantes (ver TyC)."
+  },
+  "secuestro_lspd": {
+    title: "Secuestro a LSPD (EXCLUSIVO OD)",
+    minOD: "6 Participantes",
+    maxOD: "16 Participantes",
+    policia: "15 LSPD CONECTADOS (+3) ó 10 DISPONIBLES (+3)",
+    vehiculos: "CUATRO vehículos.",
+    armamento: "Todo tipo (restringido por lugar).",
+    refuerzo: "PERMITIDO bajo TyC."
+  },
+  "secuestro_sams": {
+    title: "Secuestro a SAMS (EXCLUSIVO OD)",
+    minOD: "6 Participantes",
+    maxOD: "8 Participantes",
+    policia: "11 LSPD DISPONIBLES (+1) • SAMS: 4 CONECTADOS",
+    vehiculos: "HASTA 2 vehículos.",
+    armamento: "Todo tipo (restringido por lugar).",
+    refuerzo: "—"
+  },
+  "life_invader": {
+    title: "Robo a Sucursal Life Invader (EXCLUSIVO OD)",
+    minOD: "3 Participantes",
+    maxOD: "6 Participantes",
+    policia: "5 LSPD DISPONIBLES (+1)",
+    vehiculos: "DOS vehículos.",
+    armamento: "Bajo y medio calibre.",
+    refuerzo: "PERMITIDO bajo TyC."
+  },
+  "banco_paleto": {
+    title: "Robo a Banco Paleto (EXCLUSIVO OD)",
+    minOD: "6 Participantes",
+    maxOD: "8 Participantes",
+    policia: "9 LSPD DISPONIBLES (+1)",
+    vehiculos: "DOS vehículos.",
+    armamento: "Medio calibre.",
+    refuerzo: "NO permitido."
+  },
+  "joyeria_od": {
+    title: "Robo a Joyería (EXCLUSIVO OD)",
+    minOD: "6 Participantes",
+    maxOD: "8 Participantes",
+    policia: "10 LSPD DISPONIBLES (+2)",
+    vehiculos: "DOS vehículos.",
+    armamento: "Medio y alto calibre.",
+    refuerzo: "PERMITIDO bajo TyC."
+  },
+  "humane": {
+    title: "Robo a Humane (EXCLUSIVO OD)",
+    minOD: "10 Participantes",
+    maxOD: "16 Participantes",
+    policia: "12 LSPD DISPONIBLES (+2)",
+    vehiculos: "CUATRO vehículos.",
+    armamento: "Medio y alto calibre.",
+    refuerzo: "NO permitido."
+  },
+  "yate": {
+    title: "Robo al Yate (EXCLUSIVO OD)",
+    minOD: null,
+    maxOD: "10 Participantes",
+    policia: "12 LSPD DISPONIBLES (+2)",
+    vehiculos: "TRES vehículos ACUÁTICOS.",
+    armamento: "Medio calibre.",
+    refuerzo: "NO permitido."
+  },
+  "banco_central_od": {
+    title: "Robo a Banco Central (EXCLUSIVO OD)",
+    minOD: "10 Participantes",
+    maxOD: "20 Participantes",
+    policia: "12 LSPD DISPONIBLES (+3)",
+    vehiculos: "SEIS vehículos.",
+    armamento: "Medio y alto calibre.",
+    refuerzo: "PERMITIDO bajo TyC."
   }
 };
 
@@ -94,7 +221,7 @@ async function registerCommands() {
           name: 'zona',
           description: 'Escribe para buscar/filtrar la zona (autocomplete).',
           type: 3,            // STRING
-          autocomplete: true, // <--- autocompletado
+          autocomplete: true, // autocompletado
           required: false
         }
       ]
@@ -120,18 +247,23 @@ async function registerCommands() {
 const trunca = (s = '', max = 100) => (s.length <= max ? s : s.slice(0, max - 1) + '…');
 const norm = (s = '') => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
-const makeEmbed = (zona, userTag) =>
+// Genera la descripción vertical (solo líneas OD)
+function buildVerticalText(a) {
+  const lines = [];
+  if (a.minOD) lines.push(`Mínimo permitido a Organizaciones delictuales: ${a.minOD}.`);
+  if (a.maxOD) lines.push(`Máximo permitido para Organizaciones delictuales: ${a.maxOD}.`);
+  if (a.policia) lines.push(`Necesidad policial: ${a.policia}.`);
+  if (a.vehiculos) lines.push(`Vehículos a utilizar: ${a.vehiculos}.`);
+  if (a.armamento) lines.push(`Armamento permitido: ${a.armamento}`);
+  if (a.refuerzo) lines.push(`Refuerzo: ${a.refuerzo}`);
+  return lines.join("\n\n");
+}
+
+const makeEmbed = (act, userTag) =>
   new EmbedBuilder()
-    .setTitle(`📢 Disponibilidad: ${zona.title}`)
+    .setTitle(`📢 Disponibilidad: ${act.title}`)
     .setColor('#5865F2')
-    .addFields(
-      { name: 'Policía requerida', value: zona.police, inline: true },
-      { name: 'Tipo de arma (RP)', value: zona.weapon, inline: true },
-      { name: 'Participantes (Delincuentes)', value: zona.participants.delincuentes, inline: true },
-      { name: 'Participantes (Policías)', value: zona.participants.policias, inline: true },
-      { name: 'Entorno', value: zona.environment, inline: false },
-      { name: 'Notas', value: zona.notes, inline: false }
-    )
+    .setDescription(buildVerticalText(act))
     .setFooter({ text: `Solicitado por ${userTag}` })
     .setTimestamp(new Date());
 
@@ -154,10 +286,10 @@ client.on('interactionCreate', async (interaction) => {
       const focused = interaction.options.getFocused() || '';
       const q = norm(focused);
 
-      const allChoices = Object.entries(ZONAS_DISPO).map(([key, z]) => ({
-        name: z.title,
+      const allChoices = Object.entries(ACTOS).map(([key, a]) => ({
+        name: a.title,
         value: key,
-        haystack: norm(`${z.title} ${z.environment} ${z.notes}`)
+        haystack: norm(`${a.title} ${a.policia} ${a.armamento}`)
       }));
 
       let matches = allChoices;
@@ -179,18 +311,18 @@ client.on('interactionCreate', async (interaction) => {
     try {
       const zonaArg = interaction.options.getString('zona');
 
-      // a) Sin argumento -> mostrar select completo
+      // a) Sin argumento -> mostrar select con TODO
       if (!zonaArg) {
-        const options = Object.entries(ZONAS_DISPO).map(([key, z]) =>
+        const options = Object.entries(ACTOS).map(([key, a]) =>
           new StringSelectMenuOptionBuilder()
-            .setLabel(z.title)
-            .setDescription(trunca(z.environment, 100))
+            .setLabel(a.title)
+            .setDescription(trunca(a.policia || a.armamento || "", 100))
             .setValue(key)
         );
 
         const select = new StringSelectMenuBuilder()
           .setCustomId('dispo_select')
-          .setPlaceholder('Elige la misión/objetivo…')
+          .setPlaceholder('Elige el acto/objetivo…')
           .addOptions(options);
 
         const row = new ActionRowBuilder().addComponents(select);
@@ -203,33 +335,33 @@ client.on('interactionCreate', async (interaction) => {
         return;
       }
 
-      // b) Con argumento (esperamos la key de ZONAS_DISPO devuelta por autocomplete)
-      const zona = ZONAS_DISPO[zonaArg];
-      if (zona) {
+      // b) Con argumento (key de ACTOS)
+      const act = ACTOS[zonaArg];
+      if (act) {
         await interaction.channel.send({
           content: mentionPrefix || undefined,
-          embeds: [makeEmbed(zona, interaction.user.tag)],
+          embeds: [makeEmbed(act, interaction.user.tag)],
           allowedMentions: { parse: [], roles: [ROLE_POLICIAS_ID, ROLE_DELINCUENTES_ID].filter(Boolean) }
         });
-        await interaction.reply({ content: `✅ Publicado: **${zona.title}**`, flags: 64 }).catch(() => {});
+        await interaction.reply({ content: `✅ Publicado: **${act.title}**`, flags: 64 }).catch(() => {});
         return;
       }
 
-      // c) Si el user escribió pero no eligió (no coincide la key), filtramos y mostramos select reducido
+      // c) El user escribió pero no eligió (filtrar y mostrar select reducido)
       const q = norm(zonaArg);
-      const filtered = Object.entries(ZONAS_DISPO).filter(([_, z]) =>
-        norm(`${z.title} ${z.environment} ${z.notes}`).includes(q)
+      const filtered = Object.entries(ACTOS).filter(([_, a]) =>
+        norm(`${a.title} ${a.policia} ${a.armamento}`).includes(q)
       );
 
       if (filtered.length === 0) {
-        await interaction.reply({ content: '⚠️ No encontré zonas con ese término.', flags: 64 });
+        await interaction.reply({ content: '⚠️ No encontré actos con ese término.', flags: 64 });
         return;
       }
 
-      const options = filtered.slice(0, 25).map(([key, z]) =>
+      const options = filtered.slice(0, 25).map(([key, a]) =>
         new StringSelectMenuOptionBuilder()
-          .setLabel(z.title)
-          .setDescription(trunca(z.environment, 100))
+          .setLabel(a.title)
+          .setDescription(trunca(a.policia || a.armamento || "", 100))
           .setValue(key)
       );
 
@@ -254,17 +386,17 @@ client.on('interactionCreate', async (interaction) => {
     return;
   }
 
-  // Select menu de /dispo
+  // Select menu
   if (interaction.isStringSelectMenu() && interaction.customId === 'dispo_select') {
     const choice = interaction.values?.[0];
-    const zona = ZONAS_DISPO[choice];
+    const act = ACTOS[choice];
 
-    if (!zona) {
+    if (!act) {
       await interaction.reply({ content: '❌ Opción desconocida.', flags: 64 });
       return;
     }
 
-    const embed = makeEmbed(zona, interaction.user.tag);
+    const embed = makeEmbed(act, interaction.user.tag);
 
     await interaction.channel.send({
       content: mentionPrefix || undefined,
@@ -272,7 +404,7 @@ client.on('interactionCreate', async (interaction) => {
       allowedMentions: { parse: [], roles: [ROLE_POLICIAS_ID, ROLE_DELINCUENTES_ID].filter(Boolean) }
     });
 
-    await interaction.reply({ content: `✅ Publicado: **${zona.title}**`, flags: 64 }).catch(() => {});
+    await interaction.reply({ content: `✅ Publicado: **${act.title}**`, flags: 64 }).catch(() => {});
     return;
   }
 });
