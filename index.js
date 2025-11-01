@@ -9,9 +9,9 @@ const express = require('express');
 // ===== ENV =====
 const TOKEN = process.env.DISCORD_BOT_TOKEN || process.env.BOT_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID || process.env.CLIENT_ID;
-const GUILD_ID = process.env.GUILD_ID || null;
-const ROLE_POLICIAS_ID = process.env.ROLE_POLICIAS_ID || null;
-const ROLE_DELINCUENTES_ID = process.env.ROLE_DELINCUENTES_ID || null;
+const GUILD_ID = process.env.GUILD_ID || null; // si lo pones, registro instantáneo por guild
+const ROLE_POLICIAS_ID = process.env.ROLE_POLICIAS_ID || null; // opcional
+const ROLE_DELINCUENTES_ID = process.env.ROLE_DELINCUENTES_ID || null; // opcional
 const PORT = process.env.PORT || 10000;
 
 if (!TOKEN || !CLIENT_ID) {
@@ -24,16 +24,16 @@ const app = express();
 app.get('/', (_req, res) => res.send('Bot /dispo activo ✅'));
 app.listen(PORT, '0.0.0.0', () => console.log(`🌐 Keep-Alive en ${PORT}`));
 
-// ===== Catálogo (edítalo libremente) =====
-// Nota: donde no tengas números exactos, deja null y el campo no se mostrará.
-// minMax: { min: 6, max: 8 } -> mostrará "6 a 8".
+// ===== Catálogo de ACTOS =====
+// minMax: { min, max } -> mostrará "min a max". Si es null, no se imprime esa línea.
 const ACTOS = {
+  // === PARA TODOS ===
   asalto_civiles: {
     title: "👛 Asalto a Civiles",
     minMax: null,
     policia: "3 LSPD CONECTADOS (+1)",
-    vehiculos: "UN vehículo (civiles) / TRES (OD)",
-    armamento: "Bajo/medio calibre",
+    vehiculos: "UN vehículo para CIVILES / TRES vehículo para OD",
+    armamento: "Todo tipo (restringido por lugar)",
     refuerzo: "NO permitido",
     calibre: "bajo/medio",
     accion: "asaltando a civiles en la vía pública"
@@ -42,8 +42,8 @@ const ACTOS = {
     title: "🎭 Secuestro a Civiles",
     minMax: null,
     policia: "5 LSPD CONECTADOS (+2)",
-    vehiculos: "UN (civiles) / TRES (OD)",
-    armamento: "Medio calibre",
+    vehiculos: "UN vehículo para CIVILES / TRES vehículos para OD",
+    armamento: "Todo tipo (restringido por lugar)",
     refuerzo: "NO permitido",
     calibre: "medio",
     accion: "retirando por la fuerza a un civil"
@@ -52,29 +52,29 @@ const ACTOS = {
     title: "💼 Estafas",
     minMax: null,
     policia: "5 LSPD CONECTADOS (+2)",
-    vehiculos: "UN (civiles) / TRES (OD)",
-    armamento: "Bajo calibre",
+    vehiculos: "UN vehículo para CIVILES / TRES vehículos para OD",
+    armamento: "Todo tipo (restringido por lugar)",
     refuerzo: "NO permitido",
-    calibre: "bajo",
+    calibre: "bajo/medio",
     accion: "realizando estafas coordinadas"
   },
   venta_droga: {
     title: "🌿 Venta de Droga",
     minMax: null,
     policia: "2 LSPD DISPONIBLES (+1)",
-    vehiculos: "UN (civiles) / UN (OD)",
+    vehiculos: "UN vehículo para CIVILES / UN vehículo para OD",
     armamento: "Bajo calibre",
     refuerzo: "—",
     calibre: "bajo",
     accion: "vendiendo sustancia a terceros"
   },
 
-  // Zonas rojas (divide por calibre)
+  // === ZONAS ROJAS (divididas por calibre; base oficial: Cosecha/Procesado/Venta) ===
   reco_bajo: {
     title: "🧺 Recolección de Droga (Bajo calibre)",
-    minMax: null,
+    minMax: { min: 1, max: 16 },
     policia: "5 LSPD CONECTADOS (+1)",
-    vehiculos: "Hasta 1 (civiles) / Hasta 4 (OD)",
+    vehiculos: "UN vehículo para CIVILES / CUATRO vehículos para OD",
     armamento: "Bajo calibre",
     refuerzo: "NO permitido",
     calibre: "bajo",
@@ -82,9 +82,9 @@ const ACTOS = {
   },
   reco_medio: {
     title: "🧺 Recolección de Droga (Medio calibre)",
-    minMax: null,
+    minMax: { min: 1, max: 16 },
     policia: "5 LSPD CONECTADOS (+1)",
-    vehiculos: "Hasta 1 (civiles) / Hasta 4 (OD)",
+    vehiculos: "UN vehículo para CIVILES / CUATRO vehículos para OD",
     armamento: "Medio calibre",
     refuerzo: "NO permitido",
     calibre: "medio",
@@ -92,9 +92,9 @@ const ACTOS = {
   },
   proc_bajo: {
     title: "🧪 Proceso de Droga (Bajo calibre)",
-    minMax: null,
+    minMax: { min: 1, max: 16 },
     policia: "5 LSPD CONECTADOS (+1)",
-    vehiculos: "Hasta 1 (civiles) / Hasta 4 (OD)",
+    vehiculos: "UN vehículo para CIVILES / CUATRO vehículos para OD",
     armamento: "Bajo calibre",
     refuerzo: "NO permitido",
     calibre: "bajo",
@@ -102,21 +102,22 @@ const ACTOS = {
   },
   proc_medio: {
     title: "🧪 Proceso de Droga (Medio calibre)",
-    minMax: null,
+    minMax: { min: 1, max: 16 },
     policia: "5 LSPD CONECTADOS (+1)",
-    vehiculos: "Hasta 1 (civiles) / Hasta 4 (OD)",
+    vehiculos: "UN vehículo para CIVILES / CUATRO vehículos para OD",
     armamento: "Medio calibre",
     refuerzo: "NO permitido",
     calibre: "medio",
     accion: "procesando en zona roja"
   },
 
+  // === ROBOS (para todos) ===
   badulaque: {
     title: "🛒 Robo a Badulaque/Liquor",
     minMax: { min: 1, max: 4 },
     policia: "7 LSPD CONECTADOS (+1)",
-    vehiculos: "UN (civiles) / UN (OD)",
-    armamento: "Según lugar",
+    vehiculos: "UN vehículo para CIVILES / UN vehículo para OD",
+    armamento: "Todo tipo (restringido por lugar)",
     refuerzo: "NO permitido",
     calibre: "bajo/medio",
     accion: "saliendo de un minimarket con botín"
@@ -124,26 +125,28 @@ const ACTOS = {
   fleeca: {
     title: "🏦 Robo a Banco Fleeca",
     minMax: { min: 1, max: 8 },
-    policia: "5 DISPONIBLES o 10 CONECTADOS (+1)",
-    vehiculos: "DOS vehículos",
-    armamento: "Medio calibre",
+    policia: "5 LSPD DISPONIBLES o 10 LSPD CONECTADOS (+1)",
+    vehiculos: "UN vehículo para CIVILES / DOS vehículos para OD",
+    armamento: "Todo tipo (restringido por lugar)",
     refuerzo: "NO permitido",
     calibre: "medio",
     accion: "forzando la bóveda de un Fleeca"
   },
+
+  // === EXCLUSIVOS OD ===
   tablet: {
     title: "💻 Blackmarket Tablet (OD)",
     minMax: { min: 1, max: 4 },
     policia: "5 LSPD CONECTADOS (+1)",
     vehiculos: "UN vehículo",
-    armamento: "Dependiendo la zona, NO necesario en persecución",
+    armamento: "Dependiendo la zona; NO necesario en persecución",
     refuerzo: "NO permitido",
     calibre: "bajo/medio",
     accion: "operando una tablet del mercado negro"
   },
   graffiti: {
     title: "🖌️ Graffiti (OD)",
-    minMax: null,
+    minMax: null, // “Toda la OD disponible (respetando +1)”
     policia: "5 LSPD CONECTADOS (+1)",
     vehiculos: "—",
     armamento: "Arma blanca (melee)",
@@ -156,8 +159,8 @@ const ACTOS = {
     minMax: { min: 6, max: 16 },
     policia: "12 LSPD CONECTADOS (+2) o 8 DISPONIBLES (+2)",
     vehiculos: "CUATRO vehículos",
-    armamento: "Todo tipo (lugar restringe)",
-    refuerzo: "Permitido para asaltantes (TyC)",
+    armamento: "Todo tipo (restringido por lugar)",
+    refuerzo: "Restringido solo para asaltantes (igual a LSPD asaltados)",
     calibre: "medio/alto",
     accion: "emboscando a personal LSPD"
   },
@@ -166,7 +169,7 @@ const ACTOS = {
     minMax: { min: 6, max: 16 },
     policia: "15 LSPD CONECTADOS (+3) o 10 DISPONIBLES (+3)",
     vehiculos: "CUATRO vehículos",
-    armamento: "Todo tipo (lugar restringe)",
+    armamento: "Todo tipo (restringido por lugar)",
     refuerzo: "PERMITIDO (TyC)",
     calibre: "medio/alto",
     accion: "secuestrando a un efectivo LSPD"
@@ -175,8 +178,8 @@ const ACTOS = {
     title: "🚑 Secuestro a SAMS (OD)",
     minMax: { min: 6, max: 8 },
     policia: "11 LSPD DISPONIBLES (+1) • SAMS: 4 CONECTADOS",
-    vehiculos: "HASTA 2 vehículos",
-    armamento: "Todo tipo (lugar restringe)",
+    vehiculos: "2 vehículos como máximo",
+    armamento: "Todo tipo (restringido por lugar)",
     refuerzo: "—",
     calibre: "medio",
     accion: "subiendo por la fuerza a un miembro de SAMS"
@@ -186,7 +189,7 @@ const ACTOS = {
     minMax: { min: 3, max: 6 },
     policia: "5 LSPD DISPONIBLES (+1)",
     vehiculos: "DOS vehículos",
-    armamento: "Bajo/Medio calibre",
+    armamento: "Bajo y Medio calibre",
     refuerzo: "PERMITIDO (TyC)",
     calibre: "bajo/medio",
     accion: "irrumpiendo en una sucursal Life Invader"
@@ -223,7 +226,7 @@ const ACTOS = {
   },
   yate: {
     title: "🛥️ Robo al Yate (OD)",
-    minMax: null,
+    minMax: { min: 1, max: 10 }, // oficial: máximo 10; usamos min 1 para mostrar el rango
     policia: "12 LSPD DISPONIBLES (+2)",
     vehiculos: "TRES vehículos ACUÁTICOS",
     armamento: "Medio calibre",
@@ -261,6 +264,7 @@ async function registerCommands() {
       required: false
     }]
   }];
+
   const rest = new REST({ version: '10' }).setToken(TOKEN);
   if (GUILD_ID) {
     console.log('📝 Registrando /dispo en GUILD…');
@@ -289,7 +293,7 @@ const mentionPrefix =
     ? `${ROLE_POLICIAS_ID ? `<@&${ROLE_POLICIAS_ID}> ` : ''}${ROLE_DELINCUENTES_ID ? `<@&${ROLE_DELINCUENTES_ID}> ` : ''}`
     : '';
 
-function fieldLine(act) {
+function fieldBlock(act) {
   const lines = [];
   if (act.minMax) lines.push(`🥷•**Mínimo permitido a Organizaciones delictuales:** ${act.minMax.min} a ${act.minMax.max}`);
   if (act.policia) lines.push(`\n🚨•**Necesidad policial:** ${act.policia}.`);
@@ -299,22 +303,22 @@ function fieldLine(act) {
   return lines.join('');
 }
 
-function entornoBloc(act) {
+function entornoBloc() {
   return `✍️•**Entorno (dependiendo el robo o acción):**
 Salida:
 entrada:`;
 }
 
 function makeEmbed(act, userTag) {
-  const desc = fieldLine(act);
+  const desc = fieldBlock(act);
   const autoTxt = entornoAuto(act);
   return new EmbedBuilder()
     .setTitle(`📢 Disponibilidad: ${act.title}`)
     .setColor('#5865F2')
-    .setDescription(desc)
+    .setDescription(desc || '—')
     .addFields(
       { name: '🗣️ Entorno (auto)', value: trunca(autoTxt, 1024) },
-      { name: '📋 Copiar/pegar', value: entornoBloc(act) }
+      { name: '📋 Copiar/pegar', value: entornoBloc() }
     )
     .setFooter({ text: `Solicitado por ${userTag}` })
     .setTimestamp(new Date());
@@ -354,7 +358,11 @@ client.on('interactionCreate', async (interaction) => {
           new StringSelectMenuOptionBuilder().setLabel(a.title).setDescription(trunca(a.accion, 100)).setValue(key)
         );
         const select = new StringSelectMenuBuilder().setCustomId('dispo_select').setPlaceholder('Elige el acto…').addOptions(opts);
-        await interaction.reply({ content: 'Selecciona la disponibilidad / objetivo para publicarla:', components: [ new ActionRowBuilder().addComponents(select) ], flags: 0 });
+        await interaction.reply({
+          content: 'Selecciona la disponibilidad / objetivo para publicarla:',
+          components: [ new ActionRowBuilder().addComponents(select) ],
+          flags: 0
+        });
         return;
       }
 
@@ -372,10 +380,19 @@ client.on('interactionCreate', async (interaction) => {
       // si escribió pero no eligió -> filtro
       const q = norm(arg);
       const filtered = Object.entries(ACTOS).filter(([_, a]) => norm(`${a.title} ${a.accion}`).includes(q));
-      if (!filtered.length) return interaction.reply({ content: '⚠️ No encontré actos con ese término.', flags: 64 });
-      const opts = filtered.slice(0,25).map(([key,a]) => new StringSelectMenuOptionBuilder().setLabel(a.title).setDescription(trunca(a.accion,100)).setValue(key));
+      if (!filtered.length) {
+        await interaction.reply({ content: '⚠️ No encontré actos con ese término.', flags: 64 });
+        return;
+      }
+      const opts = filtered.slice(0,25).map(([key,a]) =>
+        new StringSelectMenuOptionBuilder().setLabel(a.title).setDescription(trunca(a.accion,100)).setValue(key)
+      );
       const select = new StringSelectMenuBuilder().setCustomId('dispo_select').setPlaceholder('Resultados de tu búsqueda…').addOptions(opts);
-      await interaction.reply({ content: 'Elige una de las coincidencias para publicarla:', components: [ new ActionRowBuilder().addComponents(select) ], flags: 0 });
+      await interaction.reply({
+        content: 'Elige una de las coincidencias para publicarla:',
+        components: [ new ActionRowBuilder().addComponents(select) ],
+        flags: 0
+      });
     } catch (err) {
       console.error('❌ /dispo:', err);
       if (!interaction.replied) await interaction.reply({ content: '❌ Error al procesar /dispo.', flags: 64 }).catch(()=>{});
